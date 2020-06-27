@@ -46,6 +46,7 @@ mongoose.set("useCreateIndex", true);
 const userSchema = new mongoose.Schema({
   email: String,
   password: String,
+  secret: String,
 });
 
 //enable passportlocalmongoose plugin for our schema
@@ -88,16 +89,50 @@ app.get("/login", function (req, res) {
 });
 
 app.get("/secrets", function (req, res) {
+  //   if (req.isAuthenticated()) {
+  //     res.render("secrets");
+  //   } else {
+  //     res.redirect("/login");
+  //   }
+  User.find({ secret: { $ne: null } }, (err, foundUsers) => {
+    if (err) {
+      console.log(err);
+    } else {
+      if (foundUsers) {
+        res.render("secrets", { usersWithSecrets: foundUsers });
+      }
+    }
+  });
+});
+
+app.get("/logout", (req, res) => {
+  req.logOut();
+  res.redirect("/");
+});
+app.get("/submit", (req, res) => {
   if (req.isAuthenticated()) {
-    res.render("secrets");
+    res.render("submit");
   } else {
     res.redirect("/login");
   }
 });
 
-app.get("/logout" , (req ,res) => {
-    req.logOut();
-    res.redirect("/");
+app.post("/submit", (req, res) => {
+  const submittedSecret = req.body.secret;
+  console.log(req.user.id);
+
+  User.findById(req.user.id, (err, foundUser) => {
+    if (err) {
+      console.log(err);
+    } else {
+      if (foundUser) {
+        foundUser.secret = submittedSecret;
+        foundUser.save(() => {
+          res.redirect("/secrets");
+        });
+      }
+    }
+  });
 });
 
 // carrying out basic level-1 secuity of authentication (register / login)
